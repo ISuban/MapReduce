@@ -14,26 +14,32 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 public class StudentAverage {
 	
-	public static class Map extends Mapper<LongWritable, Text, Text, IntWritable> {
+	public static class Map extends Mapper<LongWritable, Text, Text, FloatWritable> {
 
 	      public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
 	         String line = value.toString();
-	         StringTokenizer tokenizer = new StringTokenizer(line);
-	         context.write(new Text(tokenizer.nextToken()), new IntWritable(Integer.parseInt(tokenizer.nextToken())));
+	         String[] word = line.split(",");
+	         Text outputKey = new Text(word[0].toUpperCase().trim());
+	         FloatWritable outputValue = new FloatWritable(Float.parseFloat(word[1]));
+	         context.write(outputKey, outputValue);
+	         //StringTokenizer tokenizer = new StringTokenizer(line, ",");
+	         //while(tokenizer.hasMoreTokens()) {
+	        	 //context.write(new Text(tokenizer.nextToken()), new FloatWritable(Float.parseFloat(tokenizer.nextToken())));
+	         //}
 	      }
 	   }
 
 	   public static class Reduce extends Reducer<Text, FloatWritable, Text, FloatWritable> {
 
-	      public void reduce(Text studentName, Iterable<IntWritable> marks, Context context)
-	         throws IOException, InterruptedException {
-	         int total = 0;
+	      public void reduce(Text studentName, Iterable<FloatWritable> marks, Context context) throws IOException, InterruptedException {
+	         float total = 0;
 	         int numOfSubjects = 0;
-	         for (IntWritable mark : marks) {
+	         for (FloatWritable mark : marks) {
 	        	 total += mark.get();
 	        	 numOfSubjects++;
 	         }
-	         context.write(studentName, new FloatWritable(total/numOfSubjects));
+	         float average = total/numOfSubjects;
+	         context.write(studentName, new FloatWritable(average));
 	      }
 	   }
 
@@ -44,7 +50,7 @@ public class StudentAverage {
 
 	      job.setJarByClass(StudentAverage.class);
 	      job.setOutputKeyClass(Text.class);
-	      job.setOutputValueClass(IntWritable.class);
+	      job.setOutputValueClass(FloatWritable.class);
 
 	      job.setMapperClass(Map.class);
 	      job.setReducerClass(Reduce.class);
